@@ -7,11 +7,8 @@ import 'books_view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
-  
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? loggedInUser = prefs.getString('currentUser');
-
-  runApp(MyApp(isLoggedIn: loggedInUser != null));
+  SharedPreferences p = await SharedPreferences.getInstance();
+  runApp(MyApp(isLoggedIn: p.getString('currentUser') != null));
 }
 
 class MyApp extends StatelessWidget {
@@ -21,23 +18,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hogwarts Library',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF1A237E),
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD4AF37),
-          secondary: Color(0xFF1A237E),
-          surface: Color(0xFF1E1E1E),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1A237E),
-          elevation: 0,
-          centerTitle: true,
-        ),
-      ),
+      theme: ThemeData.dark(), // Pakai dark mode bawaan biar ga ribet set warna
       home: isLoggedIn ? const BooksView() : const LoginView(),
     );
   }

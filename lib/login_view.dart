@@ -4,7 +4,6 @@ import 'books_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
-
   @override
   State<LoginView> createState() => _LoginViewState();
 }
@@ -12,25 +11,21 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  String? _errorMessage;
-  final String correctPassword = "123230100";
+  String? _error;
 
-  void _handleLogin() async {
-    String username = _usernameController.text.trim();
-    String password = _passwordController.text.trim();
-
-    if (username.length < 5) {
-      setState(() => _errorMessage = "Username minimal harus 5 karakter!");
+  void _login() async {
+    String user = _usernameController.text.trim();
+    if (user.length < 5) {
+      setState(() => _error = "Username minimal 5 karakter!");
       return;
     }
-    if (password != correctPassword) {
-      setState(() => _errorMessage = "Password (NIM) salah!");
+    if (_passwordController.text.trim() != "123230100") {
+      setState(() => _error = "Password (NIM) salah!");
       return;
     }
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentUser', username);
-
+    await prefs.setString('currentUser', user);
     if (mounted) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BooksView()));
     }
@@ -39,53 +34,18 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.auto_stories, size: 80, color: Color(0xFFD4AF37)),
-              const SizedBox(height: 16),
-              const Text('HOGWARTS LIBRARY', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.person),
-                  errorText: _errorMessage != null && _usernameController.text.length < 5 ? _errorMessage : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password (NIM)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.lock),
-                ),
-              ),
-              if (_errorMessage != null && _usernameController.text.length >= 5)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _handleLogin,
-                child: const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+      appBar: AppBar(title: const Text('Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(controller: _usernameController, decoration: InputDecoration(labelText: 'Username', errorText: _error)),
+            const SizedBox(height: 10),
+            TextField(controller: _passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password (NIM)')),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: _login, child: const Text('LOGIN')),
+          ],
         ),
       ),
     );

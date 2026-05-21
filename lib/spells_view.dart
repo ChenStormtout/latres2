@@ -7,112 +7,80 @@ import 'favorite_spells_view.dart';
 
 class SpellsView extends StatefulWidget {
   const SpellsView({super.key});
-
   @override
   State<SpellsView> createState() => _SpellsViewState();
 }
 
 class _SpellsViewState extends State<SpellsView> {
-  List<dynamic> _spells = [];
-  List<String> _favSpellNames = [];
-  bool _isLoading = true;
-  String _currentUser = '';
+  List _spells = [];
+  List<String> _favs = [];
+  bool _loading = true;
+  String _user = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUserDataAndSpells();
+    _load();
   }
 
-  Future<void> _loadUserDataAndSpells() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    _currentUser = prefs.getString('currentUser') ?? '';
-    _favSpellNames = prefs.getStringList('fav_spells_$_currentUser') ?? [];
-    
+  _load() async {
+    SharedPreferences p = await SharedPreferences.getInstance();
+    _user = p.getString('currentUser') ?? '';
+    _favs = p.getStringList('fav_spells_$_user') ?? [];
     try {
-      final response = await http.get(Uri.parse('https://potterapi-fedeperin.vercel.app/en/spells'));
-      if (response.statusCode == 200) {
-        setState(() {
-          _spells = json.decode(response.body);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
+      final res = await http.get(Uri.parse('https://potterapi-fedeperin.vercel.app/en/spells'));
+      if (res.statusCode == 200) setState(() => _spells = json.decode(res.body));
+    } catch (_) {}
+    setState(() => _loading = false);
   }
 
-  void _toggleFavorite(dynamic spell) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String spellName = spell['spell'];
-    
+  _toggle(dynamic spell) async {
+    SharedPreferences p = await SharedPreferences.getInstance();
+    String name = spell['spell'];
     setState(() {
-      if (_favSpellNames.contains(spellName)) {
-        _favSpellNames.remove(spellName);
-        prefs.remove('fav_detail_${_currentUser}_$spellName');
+      if (_favs.contains(name)) {
+        _favs.remove(name);
+        p.remove('fav_detail_${_user}_$name');
       } else {
-        _favSpellNames.add(spellName);
-        prefs.setString('fav_detail_${_currentUser}_$spellName', json.encode(spell));
+        _favs.add(name);
+        p.setString('fav_detail_${_user}_$name', json.encode(spell));
       }
     });
-    
-    await prefs.setStringList('fav_spells_$_currentUser', _favSpellNames);
-  }
-
-  void _logout(BuildContext context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('currentUser');
-    if (context.mounted) {
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginView()), (route) => false);
-    }
+    await p.setStringList('fav_spells_$_user', _favs);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Spells List'),
-        actions: [IconButton(icon: const Icon(Icons.logout), onPressed: () => _logout(context))],
+        title: const Text('Spells View'),
+        actions: [
+          IconButton(icon: const Icon(Icons.logout), onPressed: () async {
+            SharedPreferences p = await SharedPreferences.getInstance();
+            await p.remove('currentUser');
+            if (context.mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (c) => const LoginView()), (r) => false);
+          })
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+      body: _loading 
+          ? const Center(child: CircularProgressIndicator()) 
           : ListView.builder(
-              padding: const EdgeInsets.all(12),
               itemCount: _spells.length,
-              itemBuilder: (context, index) {
-                final spell = _spells[index];
-                final isFav = _favSpellNames.contains(spell['spell']);
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    title: Text(spell['spell'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD4AF37))),
-                    subtitle: Text(spell['use']),
-                    trailing: IconButton(
-                      icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: Colors.red),
-                      onPressed: () => _toggleFavorite(spell),
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (c, i) => ListTile(
+                title: Text(_spells[i]['spell']),
+                subtitle: Text(_spells[i]['use']),
+                trailing: IconButton(
+                  icon: Icon(_favs.contains(_spells[i]['spell']) ? Icons.favorite : Icons.favorite_border, color: Colors.red),
+                  onPressed: () => _toggle(_spells[i]),
+                ),
+              ),
             ),
-      bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF1A237E),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            TextButton.icon(
-              icon: const Icon(Icons.book, color: Colors.white),
-              label: const Text('Books', style: TextStyle(color: Colors.white)),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const VerticalDivider(color: Colors.white30, width: 1),
-            TextButton.icon(
-              icon: const Icon(Icons.favorite, color: Colors.white),
-              label: const Text('Favorites', style: TextStyle(color: Colors.white)),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FavoriteSpellsView())).then((_) => _loadUserDataAndSpells()),
-            ),
-          ],
-        ),
+      bottomNavigationBar: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Books')),
+          ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FavoriteSpellsView())).then((_) => _load()), child: const Text('Favorites')),
+        ],
       ),
     );
   }
